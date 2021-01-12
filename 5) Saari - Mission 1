@@ -1,0 +1,263 @@
+extern void object::m51()
+{
+    if(this.category == WheeledGrabber)
+    {
+        Prepare();
+        Charge();
+        Shooters();
+        PrepareClimb();
+        GrabOre();
+    }
+    if(this.category == WingedShooter) Destroy();
+}
+ 
+void object::Prepare()
+{
+    object astro = radar(Me);
+    object item;
+    object ship = radar(SpaceShip);
+    message("Найди пару боевых ботов и иди не корабль");
+    while(distance(astro.position,ship.position)>10) wait(0.01);
+    while(radar(WingedShooter)==null)
+    {
+        message("ЖИВЕЕ!!!!!!");
+        wait(1);
+    }
+    object[] items = radarall(WingedShooter);
+    int number = sizeof(items);
+}
+ 
+void object::Charge()
+{
+    object item = radar(Titanium);
+    turn(direction(item.position));
+    move(distance(this.position, item.position)-1.5);
+    grab();
+    ErrorGoto(space());
+    drop();
+    build(PowerStation);
+    item = radar(PowerStation);
+    ErrorGoto(item.position);
+    while(this.energyCell.energyLevel<1) wait(1);
+} 
+ 
+void object::Shooters()
+{
+    object[] items = radarall(WingedShooter);
+    for(int i = 0; i < sizeof(items); i++)
+    {
+        Recharge(WingedShooter);
+    }
+}
+ 
+void object::PrepareClimb()
+{
+    ErrorGoto(radar(SpaceShip).position);
+    while(radar(AlienAnt) != null) wait(0.01);
+    object item = radar(PowerCell);
+    ErrorGoto(item.position);
+    grab();
+    Recharge(this.category);
+}
+ 
+void object::GrabOre()
+{
+    object item;
+    int list[];
+    int i = 0;
+    list[i++] = WingedShooter;
+    list[i++] = 70;
+    list[i++] = 71;
+    list[i++] = 72;
+    list[i++] = 73;
+    list[i++] = 74;
+    float dir;
+    point first;
+    point next;
+    while(radar(UraniumOre,0,360,0,20)==null)
+    {
+        if(this.energyCell.energyLevel <0.1)
+        {
+            drop();
+            grab(EnergyCell);
+            drop(Behind);
+            grab();
+            drop(EnergyCell);
+        }
+        item = radar(list,0,180,0,3);
+        if(item == null)
+        {
+            item = radar(UraniumOre);
+            dir = direction(item.position);
+            first = this.position;
+            next.x = first.x + cos(this.orientation);
+            next.y = first.y + sin(this.orientation);
+            if(topo(next) - topo(first) > 0.3) dir = 90;
+        }
+        else dir = direction(item.position) - 90;
+        if(dir<0) motor(1,1+dir/120);
+        else motor(1-dir/120, 1);
+        wait(0.01);
+    }
+    ErrorGoto(item.position);
+    grab();
+    item = radar(SpaceShip);
+    ErrorGoto(item.position);
+    drop();
+    object astro = radar(Me);
+    while(distance(astro.position,item.position)>10)
+    {
+        message("Погулял? Пора отправляться!!!!!");
+        wait(1);
+    }
+    item.takeoff();
+}
+ 
+void object::Highlander(int cat)
+{
+    object item = newradar(cat,0,360,0,1000,1);
+    ErrorGoto(item.position);
+    grab();
+}
+ 
+void object::Recharge(int cat)
+{
+    object item;
+    if(this.category != cat)
+    {
+        item = radar(PowerCell,0,360,0,50);
+        if(item == null) Highlander(Recycler);
+        else
+        {
+            ErrorGoto(item.position);
+            grab();
+        }
+    }
+    item = radar(PowerStation);
+    ErrorGoto(item.position);
+    while(this.energyCell.energyLevel<1) wait(1);
+    if(this.load!=null)
+    {
+        while(this.load.energyLevel<1) wait(1);
+        if(cat != this.category)
+        {
+            while(radar(cat)==null) wait(1);
+            item = radar(cat);
+            ErrorGoto(item.position);
+            drop();
+            move(-5);
+        }
+    }
+}
+ 
+void object::ErrorGoto(point p)
+{
+    errmode(0);
+    int err;
+    err = goto(p);
+    while(err!=0)
+    {
+        turn(direction(p));
+        motor(1,1);
+        wait(1);
+        err = goto(p);
+    }
+}
+ 
+void object::Destroy()
+{
+    errmode(0);
+    int i = 0;
+    int list[];
+    list[i++] = SpaceShip;
+    list[i++] = WingedShooter;
+    object item;
+    float dir;
+    while(this.energyCell==null) wait(1);
+    jet(1);
+    wait(2);
+    jet(0);
+    while(radar(AlienAnt) != null)
+    {
+        if(this.temperature>0.8 && radar(AlienAnt,0,360,0,70)==null) saveground();
+        if(this.energyCell.energyLevel<0.4 && radar(AlienAnt,0,360,0,50)==null)
+        {
+            saveground();
+            Recharge(this.category);
+        }
+        jet(0);
+        if(this.position.z-topo(this.position)>12 && this.position.z>8) jet(-0.5);
+        if(this.position.z-topo(this.position)<12 || this.position.z<5) jet(0.5);
+        wait(0.01);
+        item = radar(list,0,180,0,10);
+        if(item == null)
+        {
+            item = radar(AlienAnt);
+            dir = direction(item.position);
+        }
+        else
+        {
+            dir = direction(item.position);
+            if(dir<0) dir+=180;
+            else dir-=180;
+        }
+        if(dir<0) motor(1,1+dir/45);
+        else motor(1-dir/45, 1);
+        wait(0.01);
+        if(radar(AlienAnt, 0, 90,0,40)!=null)
+        {
+            killer();
+        }
+    }
+    ErrorGoto(space(radar(SpaceShip).position));
+}
+ 
+void object::killer()
+{
+    object item = radar(AlienAnt);
+    float angle;
+    turn(direction(item.position));
+    do
+    {
+        angle = -atan2((this.position.z-item.position.z),distance2d(item.position,this.position))-this.pitch;
+        jet(-0.3);
+    }
+    while(angle<-20);
+    jet(0);
+    aim(angle);
+    turn(direction(item.position));
+    fire(0.1);
+    wait(0.5);
+}
+ 
+void object::saveground()
+{
+    object item = radar(AlienAnt);
+    turn(direction(item.position));
+    motor(-0.3,-0.3);
+    jet(-0.3);
+    while(this.temperature>0) wait(1);
+}
+ 
+object object::newradar(int cat, int angle, int focus, float min, float max, int way)
+{
+    ipf(10000);
+    int i = 0;
+    float delta;
+    object item;
+    object need[];
+    int j = 0;
+    while(retobject(i) != null)
+    {
+        item = retobject(i);
+        if(item.category == cat && distance2d(this.position, item.position) >= min && distance2d(this.position, item.position) <= max) need[j++] = item;
+        i++;
+    }
+    item = need[0];
+    for(int k = 1; k < j; k++)
+    {
+        delta = distance2d(this.position, need[k].position) - distance2d(this.position, item.position);
+        if((way == 1 && delta < 0) || (way == -1 && delta > 0)) item = need[k];
+    }
+    return item;
+}
