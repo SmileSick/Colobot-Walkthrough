@@ -1,0 +1,85 @@
+extern void object::Mission35()
+{
+    Base();
+    BuildBots();
+}
+ 
+void object::Base()
+{
+    Build(Converter);
+    Convert();
+    Build(BotFactory);
+    Convert();
+}
+ 
+void object::Convert()
+{
+    object item;
+    item = radar(TitaniumOre);
+    ErrorGoto(item.position);
+    grab();
+    item = radar(Converter);
+    ErrorGoto(item.position);
+    drop();
+    move(-3);
+    while(radar(Titanium)==null) wait(1);
+}
+ 
+void object::BuildBots()
+{
+    object item;
+    item = radar(Titanium);
+    ErrorGoto(item.position);
+    grab();
+    item = radar(BotFactory);
+    ErrorGoto(item.position);
+    drop();
+    move(-5);
+    item.factory(Subber, "BBox");
+    Recharge(Subber);
+    move(-10);
+}
+ 
+void object::Recharge(int cat)
+{
+    object item;
+    item = radar(PowerCell);
+    ErrorGoto(item.position);
+    grab();
+    while(radar(cat)==null) wait(1);
+    item = radar(cat);
+    ErrorGoto(item.position);
+    drop();
+}
+ 
+void object::Build(int cat)
+{
+    object item = radar(Titanium);
+    ErrorGoto(item.position);
+    grab();
+    ErrorGoto(space(this.position, 0, 50, 8));
+    move(-1.5);
+    drop();
+    build(cat);
+}
+ 
+public void object::ErrorGoto(point p)
+{
+    errmode(0);
+    int err = goto(p);
+    while(err!=0) err = goto(p);
+}
+ 
+public void object::BBox()
+{
+    object item;
+    while(this.energyCell==null) wait(1);
+    while(radar(WheeledGrabber,180,180,0,7)!=null) wait(1);
+    item = radar(BlackBox);
+    ErrorGoto(item.position);
+    grab();
+    item = radar(SpaceShip);
+    ErrorGoto(item.position);
+    drop();
+    item.takeoff();
+}
