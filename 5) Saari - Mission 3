@@ -1,0 +1,129 @@
+extern void object::Mission53()
+{
+    object item = radar(BlackBox);
+    errgoto(item.position);
+    grab();
+    item = radar(SpaceShip);
+    errgoto(item.position);
+    drop();
+    object ant, mine;
+    float angle, power;
+    point next, nextl, nextr;
+    int list[] = {SpaceShip, Mine, PowerCell, 602, 606, 610, 611, 612};
+    int rad[] = {20,5,5,10,10,10,25,15};
+    bool check;
+    bool battery = true;
+    grabPowerCell();
+    while(radar(AlienAnt) != null)
+    {
+        if(this.energyCell.energyLevel < 0.35 && this.load == null && battery) recharge();
+        if(this.energyCell.energyLevel == 0) charge();
+        mine = radar(Mine);
+        ant = radar(AlienAnt);
+        power = 1;
+        angle = direction(ant.position) - direction(mine.position);
+        angle = 3 * angle + direction(ant.position);
+        check = false;
+        for(int i = 0; i < sizeof(list); i++)
+        {
+            if(radar(list[i],0,120,0,rad[i]) !=  null)
+            {
+                check = true;
+                angle = direction(radar(list[i]).position);
+                power = 0;
+                if(angle<0) angle+=120;
+                else angle-=120;
+                break;
+            }
+        }
+        angle = angle / 20;
+        if(distance2d(this.position, ant.position) < 20) power = 0.2;
+        if(distance2d(this.position, ant.position) < 10) power = 0;
+        next.x = this.position.x + cos(this.orientation);
+        next.y = this.position.y + sin(this.orientation);
+        nextl.x = this.position.x + cos(this.orientation + 5);
+        nextl.y = this.position.y + sin(this.orientation + 5);
+        nextr.x = this.position.x + cos(this.orientation - 5);
+        nextr.y = this.position.y + sin(this.orientation - 5);
+        if(topo(next) - topo(this.position) > 0.3)
+        {
+            power = 1;
+            if(topo(nextl) > topo(nextr)) angle = -0.3;
+            else angle = 0.3;
+        }
+        drive(power, angle);
+        wait(0.01);
+    }
+    item.takeoff();
+}
+ 
+void object::errgoto(point pos)
+{
+    errmode(0);
+    int err = goto(pos);
+    while(err != 0)
+    {
+        turn(direction(pos));
+        motor(1, 1);
+        wait(1);
+        err = goto(pos);
+    }
+}
+ 
+void object::drive(float power, float angle)
+{
+    power = Transform(power);
+    angle = Transform(angle);
+    float left = Transform(power - angle/2);
+    float right = Transform(power + angle/2);
+    motor(left, right);
+}
+ 
+float object::Transform(float num)
+{
+    if(abs(num) > 1) num = abs(num)/num;
+    return num;
+}
+ 
+bool object::grabPowerCell()
+{
+    object item;
+    point start;
+    float dist = 0;
+    start.x = 0;
+    start.y = 6.3;
+    motor(0,0);
+    wait(1);
+    do
+    {
+        item = radar(PowerCell, 0, 360, dist);
+        dist+=0.1;
+        if(item == null) break;
+    }while(item.energyLevel != 1);
+    if(item == null) return false;
+    errgoto(start);
+    item = radar(PowerCell);
+    errgoto(item.position);
+    grab();
+    errgoto(space());
+    return true;
+}
+ 
+void object::charge()
+{
+    motor(0,0);
+    wait(1);
+    drop();
+    grab(EnergyCell);
+    drop(Behind);
+    grab();
+    drop(EnergyCell);
+}
+ 
+bool object::recharge()
+{
+    bool battery = grabPowerCell();
+    charge();
+    battery = grabPowerCell();
+    return battery;
+}
