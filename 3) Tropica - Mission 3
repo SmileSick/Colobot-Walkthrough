@@ -1,0 +1,210 @@
+extern void object::Mission33()
+{
+    Base();
+    BuildBots();
+}
+ 
+void object::Base()
+{
+    Build(ResearchCenter);
+    Build(RepairCenter);
+    object item = radar(BlueFlag);
+    ErrorGoto(item.position);
+    Build(PowerStation);
+    Recharge(ResearchCenter);
+    item = radar(ResearchCenter);
+    item.research(ResearchShooter);
+    Highlander(WheeledGrabber);
+    while(researched(ResearchShooter) == false) wait(1);
+    Highlander(ResearchCenter);
+    item = radar(Titanium,0,360,0,1000,-1);
+    ErrorGoto(item.position);
+    Build(BotFactory);
+}
+ 
+void object::BuildBots()
+{
+    object item;
+    while(radar(PowerCell)!=null)
+    {
+        item = radar(Titanium);
+        ErrorGoto(item.position);
+        grab();
+        item = radar(BotFactory);
+        ErrorGoto(item.position);
+        drop();
+        move(-5);
+        item.factory(WingedShooter,"Destroy");
+        Recharge(BotFactory);
+        move(-5);
+    }
+}
+ 
+void object::Highlander(int cat)
+{
+    object item = radar(cat);
+    ErrorGoto(item.position);
+    motor(1,1);
+    wait(1);
+    grab();
+    ErrorGoto(space());
+    drop();
+}
+ 
+public void object::Recharge(int cat)
+{
+    object item;
+    if(this.category == WingedGrabber)
+    {
+        item = radar(PowerCell);
+        ErrorGoto(item.position);
+        grab();
+    }
+    item = radar(PowerStation);
+    ErrorGoto(item.position);
+    while(this.energyCell.energyLevel<1) wait(1);
+    if(this.load!=null)
+    {
+        while(this.load.energyLevel<1) wait(1);
+        jet(1);
+        wait(1);
+        while(radar(cat)==null) wait(1);
+        item = radar(cat);
+        ErrorGoto(item.position);
+        drop();
+        move(-5);
+    }
+    else
+    {
+        jet(1);
+        wait(1);
+    }
+}
+ 
+void object::Build(int cat)
+{
+    object item = radar(Titanium);
+    ErrorGoto(item.position);
+    grab();
+    ErrorGoto(space(this.position, 0, 50, 6));
+    move(-1.5);
+    drop();
+    build(cat);
+}
+ 
+public void object::ErrorGoto(point p)
+{
+    errmode(0);
+    int err = goto(p);
+    while(err!=0) err = goto(p);
+}
+ 
+public void object::Destroy()
+{
+    int i = 0;
+    int list[];
+    list[i++] = SpaceShip;
+    list[i++] = WingedShooter;
+    for (int j = 710; j<=715; j++)
+    {
+        list[i++] = j;
+    }
+    object item;
+    float dir;
+    while(this.energyCell==null) wait(1);
+    while(radar(WingedGrabber,180,30,0,7)!=null) wait(1);
+    move(-5);
+    jet(1);
+    wait(2);
+    jet(0);
+    while(radar(AlienAnt)!=null)
+    {
+        if(this.temperature>0.5 && radar(AlienAnt,0,360,0,70)==null) save();
+        if(this.energyCell.energyLevel<0.4 && radar(AlienAnt,0,360,0,70)==null)
+        {
+            save();
+            Recharge(this.category);
+        }
+        if(this.shieldLevel<0.3 && radar(AlienAnt,0,360,0,70)==null)
+        {
+            save();
+            repair();
+        }
+        jet(0);
+        if(this.position.z-topo(this.position)>10 && this.position.z>5) jet(-0.5);
+        if(this.position.z-topo(this.position)<8 || this.position.z<3) jet(0.5);
+        wait(0.1);
+        item = radar(list,0,180,0,10);
+        if(item == null)
+        {
+            item = radar(AlienAnt);
+            dir = direction(item.position);
+        }
+        else
+        {
+            dir = direction(item.position);
+            if(dir<0) dir+=180;
+            else dir-=180;
+        }
+        if(dir<0) motor(1,1+dir/45);
+        else motor(1-dir/45, 1);
+        wait(0.1);
+        if(radar(AlienAnt, 0, 90,0,40)!=null)
+        {
+            killer();
+        }
+    }
+    item = radar(SpaceShip);
+    item.takeoff();
+}
+ 
+public void object::killer()
+{
+    object item = radar(AlienAnt);
+    float angle;
+    turn(direction(item.position));
+    do
+    {
+        angle = -atan2((this.position.z-item.position.z),distance2d(item.position,this.position))-this.pitch;
+        jet(-0.3);
+    }
+    while(angle<-20);
+    jet(0);
+    aim(angle);
+    turn(direction(item.position));
+    fire(0.1);
+    wait(0.5);
+}
+ 
+public void object::save()
+{
+    jet(0);
+    motor(0,0);
+    int r = 0;
+    int c = 0;
+    point pos;
+    while(true)
+    {
+        for (int a = 0; a<360;a=a+6)
+        {
+            pos.x = this.position.x + r*cos(a);
+            pos.y = this.position.y + r*sin(a);
+            if(flatground(pos,5)>=2 && topo(pos)>0)
+            {
+                c = 1;
+                break;
+            }
+        }
+        if(c==1) break;
+        else r+=10;
+    }
+    ErrorGoto(pos);
+    while(this.temperature>0) wait(1);
+}
+ 
+public void object::repair()
+{
+    object item = radar(RepairCenter);
+    ErrorGoto(item.position);
+    while(this.shieldLevel<1) wait(1);
+}
