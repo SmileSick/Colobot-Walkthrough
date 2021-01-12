@@ -1,0 +1,13 @@
+extern void object::mission43()
+{
+    object item = radar(WingedGrabber);
+    while(item.load==null) wait(1);
+    while(radar(BlackBox)==null) wait(1);
+    item = radar(BlackBox);
+    goto(item.position);
+    grab();
+    item = radar(SpaceShip);
+    goto(item.position);
+    drop();
+    item.takeoff();
+}
