@@ -1,0 +1,55 @@
+extern void object::Mission24()
+{
+    Charge();
+    Clean();
+    Bbox();
+}
+ 
+void object::Charge()
+{
+    object item = radar(Titanium);
+    goto(item.position);
+    grab();
+    goto(space());
+    drop();
+    build(PowerStation);
+    item = radar(PowerStation);
+    goto(item.position);
+    while(this.energyCell.energyLevel<1) wait(1);
+}
+ 
+void object::Clean()
+{
+    object item;
+    for(int i = 0; i<4; i++)
+    {
+        item = radar(SpaceShip);
+        goto(item.position);
+        item = radar(TitaniumOre);
+        goto(item.position);
+        grab();
+        ErrorGoto(space());
+        drop();
+    }
+}
+ 
+void object::Bbox()
+{
+    object item = radar(BlackBox);
+    goto(item.position);
+    grab();
+    item = radar(SpaceShip);
+    goto(item.position);
+    drop();
+    item.takeoff();
+}
+ 
+void object::ErrorGoto(point p)
+{
+    errmode(0);
+    int err = goto(p);
+    while(err!=0)
+    {
+        err = goto(p);
+    }
+}
