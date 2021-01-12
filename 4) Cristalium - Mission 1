@@ -1,0 +1,139 @@
+extern void object::Mission41()
+{
+    Build(Converter);
+    Convert();
+    Build(BotFactory);
+    BBot(WingedGrabber, "BuildRadar");
+    BBot(WingedShooter, "Shoot");
+}
+ 
+void object::Recharge(int cat)
+{
+    object item;
+    item = radar(PowerCell);
+    ErrorGoto(item.position);
+    grab();
+    while(radar(cat)==null) wait(1);
+    item = radar(BotFactory);
+    ErrorGoto(item.position);
+    drop();
+    move(-5);
+}
+ 
+void object::Build(int cat)
+{
+    object item = radar(Titanium);
+    ErrorGoto(item.position);
+    grab();
+    ErrorGoto(space(this.position, 0, 50, 6));
+    move(-1.5);
+    drop();
+    build(cat);
+}
+ 
+public void object::ErrorGoto(point p)
+{
+    errmode(0);
+    int err = goto(p);
+    while(err!=0) err = goto(p);
+}
+ 
+point object::Convert()
+{
+    point pos;
+    object item = radar(TitaniumOre);
+    ErrorGoto(item.position);
+    grab();
+    pos =this.position;
+    item = radar(Converter);
+    ErrorGoto(item.position);
+    drop();
+    move(-3);
+    while(radar(Titanium,0,30,0,15)==null) wait(1);
+    return pos;
+}
+ 
+void object::BBot(int cat, string text)
+{
+    point pos = Convert();
+    object item = radar(Titanium);
+    ErrorGoto(item.position);
+    grab();
+    item = radar(BotFactory);
+    ErrorGoto(item.position);
+    drop();
+    move(-5);
+    item.factory(cat, text);
+    Recharge(cat);
+    move(-5);
+    ErrorGoto(pos);
+}
+ 
+public void object::Shoot()
+{
+    object item;
+    float angle, dir;
+    while(this.energyCell == null) wait(1);
+    while(radar(WheeledGrabber,180,180,0,7)!=null) wait(1);
+    move(-5);
+    item = radar(703);
+    turn(direction(item.position));
+    jet(1);
+    wait(2);
+    jet(0);
+    motor(1,1);
+    while(this.pitch <=5) wait(1);
+    while(this.energyCell.energyLevel>0)
+    {
+        item = radar(AlienWorm);
+        if (item == null) dir = 0;
+        else dir = direction(item.position);
+        if(dir<0) motor(1, 1+dir/90);
+        else motor(1-dir/90, 1);
+        while(radar(AlienWorm,0,180,0,30)!=null)
+        {
+            item =radar(AlienWorm);
+            angle = atan2((item.position.z - this.position.z), distance2d(item.position, this.position))-this.pitch;
+            aim(angle);
+            turn(direction(item.position));
+            fire(0.1);
+            wait(1);
+        }
+    }
+    motor(0,0);
+}
+ 
+public void object::BuildRadar()
+{
+    object item;
+    point pos;
+    while(this.energyCell == null) wait(1);
+    while(radar(WheeledGrabber,180,180,0,7)!=null) wait(1);
+    move(-5);
+    jet(1);
+    wait(1);
+    item = radar(SpaceShip);
+    ErrorGoto(item.position);
+    item = radar(Titanium);
+    ErrorGoto(item.position);
+    grab();
+    while(radar(AlienWorm)==null) wait(0.1);
+    pos = radar(AlienWorm).position;
+    while(radar(WingedShooter)==null) wait(1);
+    while(Check()==false) wait(1);
+    ErrorGoto(space(pos,0,100,3));
+    move(-1.5);
+    drop();
+    build(RadarStation);
+    radar(SpaceShip).takeoff();
+}
+ 
+public bool object::Check()
+{
+    for(int i = 0; i<10; i++)
+    {
+        if(radar(AlienWorm)!=null) return false;
+        wait(1);
+    }
+    return true;
+}
