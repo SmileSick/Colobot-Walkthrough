@@ -1,0 +1,216 @@
+extern void object::Mission42()
+{
+    Base();
+    BuildBots();
+}
+ 
+void object::Base()
+{
+    Build(Derrick,703,4);
+    Build(Converter,SpaceShip,6);
+    Build(PowerStation,SpaceShip,6);
+    Build(BotFactory,SpaceShip,8);
+    Recharge(this.category);
+    Highlander(WheeledGrabber);
+}
+ 
+void object::Build(int cat, int target, float rad)
+{
+    object item = radar(Titanium);
+    ErrorGoto(item.position);
+    grab();
+    point done = FindSpace(target, rad);
+    ErrorGoto(flatspace(done, rad));
+    move(-1.5);
+    drop();
+    build(cat);
+}
+ 
+point object::FindSpace(int cat, float rad)
+{
+    object item, done;
+    point check;
+    float r = 0;
+    do
+    {
+        item = radar(cat, 0,360,r);
+        if(item == null) break;
+        done = item;
+        r = distance2d(this.position, done.position) + 0.01;
+        check = space(done.position,0,50,rad);
+    }
+    while(flatground(check,50)<rad || check.z<0);
+    return space(done.position, 0,50,rad);
+}
+ 
+void object::BuildBots()
+{
+    object item;
+    while(radar(PowerCell)!=null)
+    {
+        item = radar(TitaniumOre);
+        ErrorGoto(item.position);
+        grab();
+        item = radar(Converter);
+        ErrorGoto(item.position);
+        drop();
+        move(-3);
+        while(radar(Titanium)==null) wait(1);
+        item = radar(Titanium);
+        ErrorGoto(item.position);
+        grab();
+        item = radar(BotFactory);
+        ErrorGoto(item.position);
+        drop();
+        move(-5);
+        item.factory(WingedShooter, "Destroy");
+        Recharge(BotFactory);
+        move(-5);
+    }
+}
+ 
+void object::Highlander(int cat)
+{
+    object item = radar(cat);
+    ErrorGoto(item.position);
+    motor(1,1);
+    wait(1);
+    grab();
+    ErrorGoto(space());
+    drop();
+}
+ 
+public void object::Recharge(int cat)
+{
+    object item;
+    if(this.category != cat)
+    {
+        item = radar(PowerCell);
+        ErrorGoto(item.position);
+        grab();
+    }
+    item = radar(PowerStation);
+    ErrorGoto(item.position);
+    while(this.energyCell.energyLevel<1) wait(1);
+    if(this.load!=null)
+    {
+        while(this.load.energyLevel<1) wait(1);
+        while(radar(cat)==null) wait(1);
+        item = radar(cat);
+        ErrorGoto(item.position);
+        drop();
+        move(-5);
+    }
+}
+ 
+public void object::ErrorGoto(point p)
+{
+    errmode(0);
+    int err;
+    object item =radar(SpaceShip);
+    if(distance2d(p,item.position)<15)
+    {
+        err = goto(item.position);
+        while(err!=0) err = goto(item.position);
+    }
+    err = goto(p);
+    while(err!=0) err = goto(p);
+}
+ 
+public void object::Destroy()
+{
+    errmode(0);
+    int i = 0;
+    int list[];
+    list[i++] = SpaceShip;
+    list[i++] = WingedShooter;
+    list[i++] = WingedGrabber;
+    object item;
+    float dir;
+    while(this.energyCell==null) wait(1);
+    while(radar(WingedGrabber,180,30,0,7)!=null) wait(1);
+    move(-5);
+    jet(1);
+    wait(2);
+    jet(0);
+    while(radar(SpaceShip).takeoff()!=0)
+    {
+        if(this.temperature>0.5 && radar(AlienWorm,0,360,0,70)==null) save();
+        if(this.energyCell.energyLevel<0.4 && radar(AlienWorm,0,360,0,70)==null)
+        {
+            save();
+            Recharge(this.category);
+        }
+        jet(0);
+        if(this.position.z-topo(this.position)>12 && this.position.z>8) jet(-0.5);
+        if(this.position.z-topo(this.position)<12 || this.position.z<5) jet(0.5);
+        wait(0.01);
+        item = radar(list,0,180,0,10);
+        if(item == null)
+        {
+            item = radar(AlienWorm);
+            if(item == null) continue;
+            dir = direction(item.position);
+        }
+        else
+        {
+            dir = direction(item.position);
+            if(dir<0) dir+=180;
+            else dir-=180;
+        }
+        if(dir<0) motor(1,1+dir/45);
+        else motor(1-dir/45, 1);
+        wait(0.01);
+        if(radar(AlienWorm, 0, 90,0,40)!=null)
+        {
+            killer();
+        }
+    }
+    radar(SpaceShip).takeoff();
+}
+ 
+public void object::killer()
+{
+    object item = radar(AlienWorm);
+    float angle;
+    turn(direction(item.position));
+    do
+    {
+        angle = -atan2((this.position.z-item.position.z),distance2d(item.position,this.position))-this.pitch;
+        jet(-0.3);
+    }
+    while(angle<-20);
+    jet(0);
+    aim(angle);
+    turn(direction(item.position));
+    fire(0.1);
+    wait(0.5);
+}
+ 
+public void object::save()
+{
+    errmode(0);
+    ipf(10000);
+    jet(0);
+    motor(0,0);
+    int r = 0;
+    bool c = false;
+    point pos;
+    while(true)
+    {
+        for (int a = 0; a<360;a=a+6)
+        {
+            pos.x = this.position.x + r*cos(a);
+            pos.y = this.position.y + r*sin(a);
+            if(flatground(pos,5)>=2 && topo(pos)>0)
+            {
+                c = true;
+                break;
+            }
+        }
+        if(c) break;
+        else r+=10;
+    }
+    ErrorGoto(pos);
+    while(this.temperature>0) wait(1);
+}
