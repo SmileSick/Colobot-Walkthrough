@@ -1,0 +1,264 @@
+extern void object::Mission52()
+{
+    file handle();
+    handle.open("mission52.txt", "w");
+    handle.writeln("extern void object::Mission52()");
+    handle.writeln("{");
+    handle.writeln("errmode(0);");
+    handle.writeln("int i = 0;");
+    handle.writeln("int list[];");
+    handle.writeln("list[i++] = SpaceShip;");
+    handle.writeln("list[i++] = WingedShooter;");
+    handle.writeln("object item;");
+    handle.writeln("float dir;");
+    handle.writeln("while(this.energyCell==null) wait(1);");
+    handle.writeln("while(radar(WheeledGrabber,180,30,0,7)!=null) wait(1);");
+    handle.writeln("move(-5);");
+    handle.writeln("jet(1);");
+    handle.writeln("wait(2);");
+    handle.writeln("jet(0);");
+    handle.writeln("while(radar(SpaceShip).takeoff()!=0)");
+    handle.writeln("{");
+    handle.writeln("if(this.temperature>0.8 && radar(AlienAnt,0,360,0,50)==null) saveground();");
+    handle.writeln("if(this.energyCell.energyLevel<0.4 && radar(AlienAnt,0,360,0,50)==null)");
+    handle.writeln("{");
+    handle.writeln("saveground();");
+    handle.writeln("Recharge();");
+    handle.writeln("}");
+    handle.writeln("jet(0);");
+    handle.writeln("if(this.position.z-topo(this.position)>12 && this.position.z>8) jet(-0.5);");
+    handle.writeln("if(this.position.z-topo(this.position)<12 || this.position.z<5) jet(0.5);");
+    handle.writeln("wait(0.01);");
+    handle.writeln("item = radar(list,0,180,0,10);");
+    handle.writeln("if(item == null)");
+    handle.writeln("{");
+    handle.writeln("item = radar(AlienAnt);");
+    handle.writeln("if(item == null) break;");
+    handle.writeln("dir = direction(item.position);");
+    handle.writeln("}");
+    handle.writeln("else");
+    handle.writeln("{");
+    handle.writeln("dir = direction(item.position);");
+    handle.writeln("if(dir<0) dir+=180;");
+    handle.writeln("else dir-=180;");
+    handle.writeln("}");
+    handle.writeln("if(dir<0) motor(1,1+dir/45);");
+    handle.writeln("else motor(1-dir/45, 1);");
+    handle.writeln("wait(0.01);");
+    handle.writeln("if(radar(AlienAnt, 0, 90,0,40)!=null)");
+    handle.writeln("{");
+    handle.writeln("killer();");
+    handle.writeln("}");
+    handle.writeln("}");
+    handle.writeln("radar(SpaceShip).takeoff();");
+    
+    handle.writeln("}");
+    
+    handle.writeln("void object::killer()");
+    handle.writeln("{");
+    handle.writeln("object item = radar(AlienAnt);");
+    handle.writeln("float angle;");
+    handle.writeln("turn(direction(item.position));");
+    handle.writeln("do");
+    handle.writeln("{");
+    handle.writeln("angle = -atan2((this.position.z-item.position.z),distance2d(item.position,this.position))-this.pitch;");
+    handle.writeln("jet(-0.3);");
+    handle.writeln("}");
+    handle.writeln("while(angle<-20);");
+    handle.writeln("jet(0);");
+    handle.writeln("aim(angle);");
+    handle.writeln("turn(direction(item.position));");
+    handle.writeln("fire(0.1);");
+    handle.writeln("wait(0.5);");
+    handle.writeln("}");
+    
+    handle.writeln("void object::errgoto(point pos)");
+    handle.writeln("{");
+    handle.writeln("errmode(0);");
+    handle.writeln("int err= goto(pos);");
+    handle.writeln("while(err!=0) err = goto(pos);");
+    handle.writeln("}");
+    
+    handle.writeln("void object::Recharge()");
+    handle.writeln("{");
+    handle.writeln("object item = radar(PowerStation);");
+    handle.writeln("errgoto(item.position);");
+    handle.writeln("while(this.energyCell.energyLevel<1) wait(1);");
+    handle.writeln("}");
+    
+    handle.writeln("void object::saveground()");
+    handle.writeln("{");
+    handle.writeln("object item = radar(AlienAnt);");
+    handle.writeln("turn(direction(item.position));");
+    handle.writeln("motor(-0.3,-0.3);");
+    handle.writeln("jet(-0.3);");
+    handle.writeln("while(this.temperature>0) wait(1);");
+    handle.writeln("}");
+    
+    handle.close();
+    
+    handle.open("mission52.txt", "r");
+    string o_str = "";
+    while(!handle.eof()) o_str+=handle.readln();
+    
+    object item;
+    int dist = 22;
+    object ship = radar(SpaceShip);
+    point pos;
+    if(this.category  == WheeledShooter)
+    {
+        errgoto(space());
+        while(sizeof(radarall(AlienAnt)) != 6)
+        {
+            item = search(AlienAnt, ship.position);
+            pos.x = (item.position.x - ship.position.x) * dist / distance2d(item.position, ship.position);
+            pos.y = (item.position.y - ship.position.y) * dist / distance2d(item.position, ship.position);
+            if(distance2d(this.position, item.position) < 45)
+            {
+                turn(direction(item.position));
+                aim(atan((item.position.z - this.position.z)/distance2d(item.position, this.position)));
+                fire(0.05);
+                wait(1);
+            }
+            if(distance2d(this.position, pos) > 15) travel(pos, item);
+        }
+    }
+    else
+    {
+        while(sizeof(radarall(AlienAnt)) != 6) wait(1);
+        Build(Converter, SpaceShip, 6);
+        Build(PowerStation, SpaceShip, 8);
+        Build(BotFactory, SpaceShip,8);
+        BuildBots(o_str);
+    }
+}
+ 
+void object::Recharge(int cat)
+{
+    object item;
+    if(this.category != cat) GrabCat(PowerCell);
+    item = radar(PowerStation);
+    errgoto(item.position);
+    while(this.energyCell.energyLevel<1) wait(1);
+    if(this.load!=null)
+    {
+        while(this.load.energyLevel<1) wait(1);
+        while(radar(cat)==null) wait(1);
+        item = radar(cat);
+        errgoto(item.position);
+        drop();
+        move(-5);
+    }
+}
+ 
+void object::Build(int cat, int target, float rad)
+{
+    GrabCat(Titanium);
+    point done = FindSpace(target, rad);
+    errgoto(flatspace(done, rad));
+    move(-1.5);
+    drop();
+    build(cat);
+}
+ 
+point object::FindSpace(int cat, float rad)
+{
+    object item, done;
+    point check;
+    float r = 0;
+    do
+    {
+        item = radar(cat, 0,360,r);
+        if(item == null) break;
+        done = item;
+        r = distance2d(this.position, done.position) + 0.01;
+        check = space(done.position,0,50,rad);
+    }
+    while(flatground(check,50)<rad || check.z<0);
+    return space(done.position, 0,50,rad);
+}
+ 
+void object::Convert()
+{
+    object item;
+    GrabCat(TitaniumOre);
+    item = radar(Converter);
+    errgoto(item.position);
+    drop();
+    move(-3);
+    while(radar(Titanium)==null) wait(1);
+}
+ 
+void object::BuildBots(string o_str)
+{
+    object item;
+    while(radar(PowerCell)!=null)
+    {
+        if(radar(Titanium) == null) Convert();
+        GrabCat(Titanium);
+        item = radar(BotFactory);
+        errgoto(item.position);
+        drop();
+        move(-5);
+        item.factory(WingedShooter, o_str);
+        Recharge(BotFactory);
+        move(-5);
+    }
+}
+ 
+void object::GrabCat(int cat)
+{
+    object item;
+    while(true)
+    {
+        item = radar(cat);
+        errgoto(item.position);
+        grab();
+        if(this.load.category != cat)
+        {
+            errgoto(space());
+            drop();
+        }
+        else break;
+    }
+}
+ 
+void object::errgoto(point pos)
+{
+    errmode(0);
+    object ship = radar(SpaceShip);
+    int err;
+    if(distance2d(pos, ship.position) < 15)
+    {
+        err = goto(ship.position);
+        while(err != 0) err = goto(ship.position);
+    }
+    err = goto(pos);
+    while(err != 0) err = goto(pos);
+}
+ 
+void object::travel(point pos, object target)
+{
+    object ship = radar(SpaceShip);
+    float dir;
+    object item;
+    turn(direction(target.position));
+    while(distance2d(this.position, pos) > 1)
+    {
+        item = search(AlienAnt, ship.position);
+        if(item.id != target.id) break;
+        if(radar(AlienAnt,0,360,0,40)!=null) break;
+        item = radar(SpaceShip,0,180,0,21);
+        if(item == null) dir = direction(pos);
+        else
+        {
+            dir = direction(item.position);
+            if(dir<0) dir+=120;
+            else dir-=120;
+        }
+        if(dir<0) motor(1,1+dir/90);
+        else motor(1-dir/90,1);
+        wait(0.01);
+    }
+    motor(0,0);
+}
