@@ -1,0 +1,39 @@
+extern void object::mission44()
+{
+    object item = newradar(TrackedShooter, 0, 360, 0, 1000, -1);
+    goto(item.position);
+    item = radar(BlackBox);
+    goto(item.position,2);
+    grab();
+    jet(1);
+    wait(1);
+    motor(1,1);
+    wait(1);
+    item = radar(SpaceShip);
+    goto(item.position);
+    drop();
+    item.takeoff();
+}
+ 
+object object::newradar(int cat, int angle, int focus, float min, float max, int way)
+{
+    ipf(10000);
+    int i = 0;
+    object item;
+    object need[];
+    int j = 0;
+    float delta;
+    while(retobject(i) != null)
+    {
+        item = retobject(i);
+        if(item.category == cat && distance2d(this.position, item.position) >= min && distance2d(this.position, item.position) <= max) need[j++] = item;
+        i++;
+    }
+    item = need[0];
+    for(int k = 1; k < j; k++)
+    {
+        delta = distance2d(this.position, need[k].position) - distance2d(this.position, item.position);
+        if ( (way == 1 && delta < 0) || (way == -1 && delta > 0) ) item = need[k];
+    }
+    return item;
+}
