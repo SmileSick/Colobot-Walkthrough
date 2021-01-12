@@ -1,0 +1,48 @@
+extern void object::Mission34()
+{
+    object item;
+    aim(-20);
+    while(true)
+    {
+        item = radar(Target2);
+        Move(item,0);
+        item = radar(TargetBot);
+        Move(item,9);
+        if(radar(TargetBot)==null) break;
+    }
+}
+ 
+void object::Move(object item, int high)
+{
+    float dir;
+    while(true)
+    {
+        if(item==null) item = radar(SpaceShip);
+        jet(0);
+        if(this.position.z>item.position.z+high+1) jet(-0.3);
+        if(this.position.z<item.position.z+high-1) jet(0.3);
+        wait(0.1);
+        dir = direction(item.position);
+        if(dir<0) motor(1,1+dir/40);
+        else motor(1-dir/40,1);
+        wait(0.1);
+        if(item.category == TargetBot&&distance2d(this.position, item.position)<22)
+        {
+            fire(0.1);
+            break;
+        }
+        if(item.category == Target2&&distance2d(this.position, item.position)<7)
+        {
+            break;
+        }
+        if(item.category == SpaceShip&&distance2d(this.position, item.position)<10)
+        {
+            motor(0,0);
+            jet(-1);
+            wait(0.5);
+            jet(0);
+            item.takeoff();
+            break;
+        }
+    }
+}
