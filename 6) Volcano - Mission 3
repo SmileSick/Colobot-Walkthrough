@@ -1,0 +1,71 @@
+extern void object::Mission63()
+{
+	object item;
+	float dist, angle, cPitch;
+	bool free;
+	if(this.category == LeggedShooter)
+	{
+		while(this.energyCell == null) wait(1);
+		while(radar(Any, 180, 20, 1, 5) != null) wait(1);
+		move(-5);
+		item = radar(RadarStation);
+		goto(space(item.position));
+		while(radar(AlienAnt) != null)
+		{
+			item = radar(AlienAnt);
+			dist = distance2d(item.position, this.position);
+			cPitch = atan(topo(this.position.x + (item.position.x - this.position.x)/dist, this.position.y + (item.position.y - this.position.y)/dist) - topo(this.position)); 
+			angle = atan((item.position.z - this.position.z)/distance2d(this.position, item.position)) - cPitch - 1;
+			free = true;
+			for(int i = 0; i < 6; i++)
+			{
+				if(topo((this.position.x*i + item.position.x*(5 - i))/5, (this.position.y*i + item.position.y*(5 - i))/5) > ((this.position.z*i + item.position.z*(5 - i))/5 + 0.5))
+				{
+					free = false;
+					break;
+				}
+			}
+			if(free && (angle < 10) && (angle > -20))
+			{
+				turn(direction(item.position));
+				if(distance(this.position, item.position) < 41)
+				{
+					aim(atan((item.position.z - this.position.z)/distance2d(this.position, item.position)) - this.pitch - 1);
+					fire(0.1);
+				}
+				else
+				{
+					motor(1, 1);
+					wait(0.1);
+				}
+			}
+			else
+			{
+				angle = -(distance(this.position, item.position) - 45)*10;
+				if(angle > 80) angle = 80;
+				if(angle < -80) angle = -80;
+				turn(direction(item.position) - 90 - angle);
+				motor(1, 1);
+				wait(0.1);
+			}
+		}
+	}
+	else
+	{
+		item = radar(NuclearCell);
+		goto(item.position);
+		grab();
+		item = radar(LeggedShooter);
+		goto(item.position);
+		drop();
+		goto(space());
+		while(radar(AlienAnt) != null) wait(1);
+		item = radar(BlackBox);
+		goto(item.position);
+		grab();
+		item = radar(SpaceShip);
+		goto(item.position);
+		drop();
+		item.takeoff();
+	}
+}
