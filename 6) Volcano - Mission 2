@@ -1,0 +1,257 @@
+extern void object::Mission62()
+{
+	Build(DefenseTower, SpaceShip, 5, AlienNest);
+	Recharge(DefenseTower);
+	Build(PowerStation, SpaceShip, 7);
+	Defense();
+	Highlander(DefenseTower);
+	Highlander(WheeledGrabber);
+	Build(Converter, SpaceShip, 7);
+	Build(BotFactory, SpaceShip, 8);
+	Build(AutoLab, SpaceShip, 8);
+	Recharge();
+	BuildBot(WingedShooter, "Killer");
+	BuildBot(WingedGrabber, "Bring");
+	TurnOff();
+}
+
+void object::Defense()
+{
+	object item = radar(DefenseTower);
+	errgoto(item.position);
+	while(true)
+	{
+		while(item.energyCell.energyLevel > 0.4)
+		{
+			if(radar(AlienWasp) == null && radar(AlienEgg) == null) return;
+			wait(1);
+		}
+		if(radar(AlienWasp, 0, 360, 0, 50) != null) continue;
+		grab();
+		drop(Behind);
+		grab(EnergyCell);
+		drop();
+		grab(Behind);
+		drop(EnergyCell);
+		Recharge();
+		errgoto(item.position);
+	}
+}
+
+public void object::Finish()
+{
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 20, 0, 7) != null) wait(1);
+	move(-7);
+	object item = radar(SpaceShip);
+	errgoto(item.position);
+	item.takeoff();
+}
+
+public void object::BringMe(int cat, int target)
+{
+	GrabCat(cat);
+	if(this.load.category == PowerCell) Recharge();
+	while(radar(target) == null) wait(1);
+	object item = radar(target);
+	errgoto(item.position);
+	drop();
+	move(-5);
+}
+
+public void object::Bring()
+{
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 20, 0, 7) != null) wait(1);
+	move(-7);
+	object item = radar(AlienNest);
+	while(search(AlienAnt, item.position, 0, 20) != null) wait(1);
+	while(radar(OrgaMatter) == null) wait(1);
+	BringMe(OrgaMatter, AutoLab);
+	radar(AutoLab).research(ResearchLegged);
+	while(!researched(ResearchLegged)) wait(1);
+	BuildBot(LeggedGrabber, "Finish");
+}
+
+public void object::TurnOff()
+{
+	Recharge();
+	errgoto(space());
+	grab(EnergyCell);
+	drop();
+}
+
+public void object::Killer()
+{
+	object item;
+	float dir;
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 20, 0, 7) != null) wait(1);
+	move(-7);
+	while(radar(AlienNest, 0, 360, 0, 10) == null)
+	{
+		jet(0);
+		if(this.position.z - topo(this.position) > 8 && this.position.z > 5) jet(-0.5);
+		if(this.position.z - topo(this.position) < 6 || this.position.z < 3) jet(0.5);
+		wait(0.1);
+		item = radar(BotFactory, 0, 180, 0, 10);
+		if(item == null)
+		{
+			item = radar(AlienNest);
+			dir = direction(item.position);
+		}
+		else
+		{
+			dir = direction(item.position);
+			if(dir < 0) dir += 180;
+			else dir -= 180;
+		}
+		if(dir < 0) motor(1, 1 + dir/45);
+		else motor(1 - dir/45, 1);
+		wait(0.1);
+		if(radar(AlienAnt, 0, 30, 0, 30) != null)
+		{
+			jet(0);
+			fire(0.5);
+		}
+	}
+	motor(0, 0);
+	jet(-1);
+	wait(0.5);
+	while(radar(AlienAnt, 0, 360, 0, 20) != null)
+	{
+		motor(1, -1);
+		fire(0.1);
+	}
+	errgoto(space());
+}
+
+public void object::BuildBot(int cat, string prog)
+{
+	BringMe(Titanium, BotFactory);
+	radar(BotFactory).factory(cat, prog);
+	BringMe(PowerCell, cat);
+	move(-5);
+}
+
+void object::Build(int cat, int target, float rad, int ori = nan)
+{
+	GrabCat(Titanium);
+	point done = FindSpace(target, rad, ori);
+	errgoto(flatspace(done, rad));
+	move(-1.5);
+	drop();
+	build(cat);
+}
+
+point object::FindSpace(int cat, float rad, int ori = nan)
+{
+	object item, done;
+	point check;
+	float next;
+	float dist = 0;
+	do
+	{
+		item = radar(cat, 0, 360, dist);
+		if(item == null) break;
+		if(ori != nan)
+		{
+			done = search(ori, item.position);
+			next = distance2d(space(item.position, rad, 50, rad), item.position);
+			check.x = (done.position.x - item.position.x)*next/distance2d(done.position, item.position) + item.position.x;
+			check.y = (done.position.y - item.position.y)*next/distance2d(done.position, item.position) + item.position.y;
+			check.z = topo(check);
+		}
+		else
+		{
+			done = item;
+			check = space(done.position, 0, 50, rad);
+		}
+		
+		dist = distance2d(this.position, done.position) + 0.01;
+		
+	}
+	while(flatground(check, 50) < rad || check.z < 0);
+	return space(check, 0, 50, rad);
+}
+
+public void object::errgoto(point pos)
+{
+	errmode(0);
+	int err;
+	object item = radar(SpaceShip);
+	if(distance2d(pos, item.position) < 10 && distance2d(this.position, pos) > 10)
+	{
+		err = goto(item.position);
+		while(err != 0)
+		{
+			turn(direction(item.position));
+			motor(1, 1);
+			wait(1);
+			err = goto(item.position);
+		}
+	}
+	err = goto(pos);
+	while(err != 0)
+	{
+		turn(direction(pos));
+		motor(1, 1);
+		wait(1);
+		err = goto(pos);
+	}
+	errmode(1);
+}
+
+void object::Highlander(int cat)
+{
+	object item = radar(cat);
+	errgoto(item.position);
+	motor(1, 1);
+	wait(0.5);
+	grab();
+	errgoto(space());
+	drop();
+}
+
+void object::Convert()
+{
+	BringMe(TitaniumOre, Converter);
+	errgoto(space());
+	while(radar(Titanium) == null) wait(1);
+}
+
+void object::Recharge(int cat = nan)
+{
+	object item;
+	if(cat != nan) GrabCat(PowerCell);
+	item = radar(PowerStation);
+	if(item != null)
+	{
+		errgoto(item.position);
+		while(this.energyCell.energyLevel < 1 && this.energyCell.category == PowerCell) wait(1);
+		if(this.load != null)
+		{
+			while(this.load.energyLevel < 1) wait(1);
+		}
+		if(cat == nan) return;
+	}
+	while(radar(cat) == null) wait(1);
+	item = radar(cat);
+	errgoto(item.position);
+	drop();
+	move(-5); 
+}
+
+void object::GrabCat(int cat)
+{
+	object item = radar(cat);
+	if(item == null && cat == Titanium)
+	{
+		Convert();
+		item = radar(cat);
+	}
+	errgoto(item.position);
+	motor(1, 1);
+	wait(0.5);
+	grab();
+}
