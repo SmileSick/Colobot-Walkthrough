@@ -1,0 +1,182 @@
+extern void object::Mission61()
+{
+	PowerUp();
+	point mountain = Traveling();
+	ChangeBattegy();
+	GrabCat(TNT);
+	BackToShip(mountain);
+}
+
+void object::Recharge()
+{
+	object item = radar(PowerStation);
+	errgoto(item.position);
+	while(this.energyCell.energyLevel < 1) wait(1);
+	if(this.load != null)
+	{
+		if(this.load.category == PowerCell)
+		{
+			while(this.load.energyLevel < 1) wait(1);
+		}
+	}
+}
+
+void object::GrabCat(int cat)
+{
+	object item = radar(cat);
+	errgoto(item.position);
+	grab();
+}
+ 
+void object::errgoto(point pos)
+{
+	errmode(0);
+	int err = goto(pos);
+	while(err != 0)
+	{
+		turn(direction(pos));
+		motor(1, 1);
+		wait(1);
+		err = goto(pos);
+	}
+	errmode(1);
+}
+
+void object::PowerUp()
+{
+	errmode(0);
+	object item;
+	int err;
+	while(true)
+	{
+		if(this.energyCell != null)
+		{
+			if(this.energyCell.category != PowerCell && this.energyCell.category != NuclearCell) message("Это не батарея. Пожалуйста, принеси батарею.");
+			else if(this.energyCell.energyLevel < 0.2) message("Мало энергии. Мне нужно больше энергии.");
+			else
+			{
+				message("Когда я вернусь, жди меня на корабле.");
+				break;
+			}
+		}
+		else
+		{
+			if(radar(Any, 180, 20, 0, 5) == null) message("Мне нужна энергия для работы.");
+			else
+			{
+				item = radar(Any, 180, 20, 0, 5);
+				if(item.category == Me)
+				{
+					if(item.load == null) message("Почему твои руки до сих пор пусты?");
+					else if(item.load.category != PowerCell && item.load.category != NuclearCell) message("Что ты притащил мне?");
+					else if(item.load.energyLevel < 0.2) message("Мало энергии. Заряди ее.");
+					else message("Дай это мне.");
+				}
+				else
+				{
+					if(item.category != PowerCell && item.category != NuclearCell) message("Что это? Мне нужна батарея.");
+					else if(item.energyLevel < 0.2) message("Мало энергии. Мне нужно больше. Это нужно зарядить.");
+					else
+					{
+						err = grab(Behind);
+						if(err != 0) message("Я не дотягиваюсь. Чуть-чуть поближе.");
+						else
+						{
+							message("Есть. Отправляйся на корабль.");
+							break;
+						}
+					}
+				}
+			}
+		}
+		wait(2 + rand()*3);
+	}
+	drop(EnergyCell);
+	while(radar(Any, 180, 20, 0, 7) != null)
+	{
+		message("Посторонись!");
+		wait(1 + rand()*3);
+	}
+	move(-5);
+	GrabCat(PowerCell);
+	Recharge();
+	message("Я полон энергии.");
+}
+
+point object::Traveling()
+{
+	float dir, top;
+	point basin, go, mountain;
+	int list[] = {BotFactory, PowerStation, ResearchCenter, Me, TitaniumOre, PowerCell};
+	int rad[] = {7, 5, 5, 4, 3, 3};
+	object item = radar(TNT);
+	object target = search(AlienSpider, item.position);
+	top = topo(this.position);
+	while(sqrt(pow(target.velocity.x,2) + pow(target.velocity.y,2) + pow(target.velocity.z,2)) == 0)
+	{
+		dir = direction(item.position);
+		for(int i = 0; i < sizeof(list); i++)
+		{
+			if(radar(list[i], 0, 120, 0, rad[i]) != null)
+			{
+				dir = direction(radar(list[i]).position);
+				if(dir < 0) dir += 180;
+				else dir -= 180;
+				break;
+			}
+		}
+		if(dir < 0) motor(1, 1 + dir/90);
+		else motor(1 - dir/90, 1);
+		if(topo(this.position) > top)
+		{
+			mountain = this.position;
+			top = topo(mountain);
+		}
+		wait(0.1);
+	}
+	motor(0, 0);
+	dir = direction(target.position);
+	if(dir < 0) dir += 180;
+	else dir -= 180;
+	turn(dir);
+	motor(-0.3, -0.3);
+	while(sqrt(pow(target.velocity.x, 2) + pow(target.velocity.y, 2) + pow(target.velocity.z, 2)) != 0) wait(0.1);
+	motor(0,0);
+	ipf(10000);
+	for(int i = -45; i <= 45; i++)
+	{
+		basin.x = this.position.x + 15 * cos(this.orientation + i);
+		basin.y = this.position.y + 15 * sin(this.orientation + i);
+		if(abs(topo(item.position) - topo(basin)) < top)
+		{
+			go = basin;
+			top = abs(topo(item.position) - topo(basin));
+		}
+	}
+	errgoto(space(go, 0, 3, 3));
+	return mountain;
+}
+
+void object::ChangeBattegy()
+{
+	drop(Behind);
+	grab(EnergyCell);
+	drop();
+	grab(Behind);
+	drop(EnergyCell);
+}
+
+void object::BackToShip(point mountain)
+{
+	errgoto(mountain);
+	object item = radar(SpaceShip);
+	errgoto(item.position);
+	drop();
+	object astro = radar(Me);
+	while(distance2d(item.position, astro.position) < 10)
+	{
+		message("Хватит гулять. Возвращайся на корабль.");
+		wait(1 + rand()*2);
+	}
+	item.takeoff();
+}
