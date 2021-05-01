@@ -1,0 +1,25 @@
+extern void object::Mission66()
+{
+	object item;
+	float dir;
+	aim(-20);
+	while(radar(AlienAnt) != null)
+	{
+		while(radar(AlienAnt, 0, 20, 0, 20) == null)
+		{
+			jet(0);
+			if (this.position.z - topo(this.position) < 5) jet(1);
+			if (this.position.z - topo(this.position) > 7) jet(-1);
+			item = radar(AlienAnt);
+			dir = direction(item.position);
+			if(dir < 0) motor(1, 1 + dir/30);
+			else motor(1 - dir/30, 1);
+			wait(0.1);
+		}
+		jet(0);
+		fire(0.2);
+	}
+	item = radar(SpaceShip);
+	goto(item.position);
+	item.takeoff();
+} 
