@@ -1,0 +1,161 @@
+extern void object::Mission64()
+{
+	PowerUp();
+	Travel();
+}
+
+void object::Travel()
+{
+	ipf(10000);
+	object item;
+	aim(-20);
+	float dir;
+	point next, nextl, nextr;
+	while(radar(AlienAnt) != null)
+	{
+		item = radar(AlienAnt);
+		jet(0);
+		if(this.position.z < item.position.z + 5) jet(0.5);
+		if(this.position.z > item.position.z + 7) jet(-0.5);
+		next.x = this.position.x + 10*cos(this.orientation);
+		next.y = this.position.y + 10*sin(this.orientation);
+		nextl.x = this.position.x + 10*cos(this.orientation + 45);
+		nextl.y = this.position.y + 10*sin(this.orientation + 45);
+		nextr.x = this.position.x + 10*cos(this.orientation - 45);
+		nextr.y = this.position.y + 10*sin(this.orientation - 45);
+		dir = direction(item.position);
+		if(topo(next) >= this.position.z + 2 || topo(nextl) >= this.position.z + 2 || topo(nextr) >= this.position.z + 2)
+		{
+			if(topo(nextl) > topo(nextr)) dir = -30;
+			else dir = 30;
+		}
+		if(dir < 0) motor(1, 1 + dir/45);
+		else motor(1 - dir/45, 1);
+		wait(0.01);
+		if(radar(AlienAnt, 0, 90, 0, 25) != null)
+		{
+			jet(0);
+			fire(1);
+			if(radar(AlienAnt, 0, 360, 0, 40) == null) save();
+			else
+			{
+				jet(-1);
+				wait(0.5);
+				aim(0);
+				while(radar(AlienAnt, 0, 360, 0, 40) != null)
+				{
+					motor(1, -1);
+					fire(0.1);
+				}
+				aim(-20);
+				save();
+			}
+		}
+	}
+	item = radar(SpaceShip);
+	errgoto(item.position);
+}
+
+void object::Lokator(int cat)
+{
+	object item = newradar(cat);
+	object astro = radar(Me);
+	string text;
+	int dist, dir;
+	while(astro.load == null)
+	{
+		text = "Атомная батарея расположена в ";
+		dist = distance2d(item.position, astro.position);
+		text = text + dist + " метрах ";
+		dir = atan2((item.position.y - astro.position.y), (item.position.x - astro.position.x)) - astro.orientation;
+		if(dir < -180) dir += 360;
+		if(dir > 0) text = text + "слева на " + dir + " градусов";
+		else text = text + "справа на " + (-dir) + " градусов";
+		message(text);
+		wait(2);
+	}
+}
+
+void object::PowerUp()
+{
+	object item = radar(Me);
+	while(true)
+	{
+		if(this.energyCell != null)
+		{
+			if(this.energyCell.category != NuclearCell) message("Установлен не тот объект. Пожалуйста, принеси атомную батарею.");
+			else break;
+		}
+		else
+		{
+			if(item.load == null)
+			{
+				message("Мне нужна энергия для работы. Я помогу найти атомную батарею");
+				wait(1);
+				Lokator(NuclearCell);
+				continue;
+			}
+			else if(item.load.category != NuclearCell) message("Это не атомная батарея. Выбрось это.");
+			else message("Дай это мне.");
+		}
+		wait(2 + rand()*3);
+	}
+	message("Я полон энергии. Стой здесь. Полетишь обратно в следующей миссии.");
+}
+
+public void object::errgoto(point pos)
+{
+	errmode(0);
+	int err = goto(pos, 10);
+	while(err != 0)
+	{
+		turn(direction(pos));
+		motor(1, 1);
+		wait(1);
+		err = goto(pos, 10);
+	}
+	errmode(1);
+}
+
+public void object::save()
+{
+	errmode(0);
+	ipf(10000);
+	jet(0);
+	motor(0, 0);
+	wait(0.1);
+	int r = 0;
+	bool c = false;
+	point pos;
+	while(true)
+	{
+		for (int i = 0; i < 360; i += 6)
+		{
+			pos.x = this.position.x + r*cos(i);
+			pos.y = this.position.y + r*sin(i);
+			if(flatground(pos, 5) >= 2 && topo(pos) > 0)
+			{
+				c = true;
+				break;
+			}
+		}
+		if(c) break;
+		else r += 10;
+	}
+	errgoto(pos);
+	while(this.temperature > 0) wait(1);
+}
+
+object object::newradar(int cat)
+{
+	ipf(10000);
+	int i = 0;
+	object item;
+	while(retobject(i) != null)
+	{
+		item = retobject(i);
+		if(item.category == cat) break;
+		i++;
+	}
+	return item;
+}
