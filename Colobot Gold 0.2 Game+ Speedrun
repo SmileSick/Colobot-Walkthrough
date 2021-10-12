@@ -1,0 +1,70 @@
+extern void object::TAS()
+{
+	point pos;
+	object item = radar(SpaceShip);
+	produce(item.position, 0, BlackBox);
+	produce(item.position, 0, TrackedBuilder);
+	produce(item.position, 0, WheeledGrabber);
+	produce(item.position, 0, WingedGrabber);
+	produce(item.position, 0, UraniumOre);
+	produce(item.position, 0, TNT);
+	produce(item.position, 0, LeggedGrabber);
+	produce(item.position, 0, WingedOrgaShooter);
+	produce(item.position, 0, LeggedOrgaShooter);
+	produce(item.position, 0, Thumper);
+	produce(item.position, 0, Shielder);
+	produce(item.position, 0, Subber);
+	produce(item.position, 0, KeyA);
+	produce(item.position, 0, KeyB);
+	produce(item.position, 0, KeyC);
+	produce(item.position, 0, Me);
+	repeat(4)
+	{
+		produce(item.position, 0, TitaniumOre);
+	}
+	rad(1.5, 99);
+	rad(-52.5, 147);
+	dest(Target2);
+	dest(AlienAnt);
+	dest(AlienWasp);
+	dest(TargetBot);
+	dest(AlienWorm);
+	dest(AlienSpider);
+	dest(609);
+	dest(AlienQueen);
+	item = radar(Me);
+	delete(item.id, 0);
+	takeoff();
+}
+
+void rad(float x, float y)
+{
+	point pos;
+	pos.x = x;
+	pos.y = y;
+	produce(pos, 0, RadarStation);
+}
+
+void dest(int target)
+{
+	object item;
+	while(newradar(target) != null)
+	{
+		item = newradar(target);
+		delete(item.id, 0);
+	}
+}
+
+object newradar(int cat)
+{
+	ipf(10000);
+	int i = 0;
+	object item;
+	while(retobject(i) != null)
+	{
+		item = retobject(i);
+		if(item.category == cat) return item;
+		i++;
+	}
+	return null;
+}
