@@ -1,0 +1,96 @@
+extern void object::B11()
+{
+	message("Иди на корабль, пока я здесь со всем разберусь.");
+	Research(ResearchTracked);
+	Research(ResearchBuilder);
+	BuildBot(TrackedBuilder, "Info");
+	errgoto(radar(SpaceShip).position);
+}
+
+void Research(int res)
+{
+	if(researched(res)) return;
+	BringTo(PowerCell, ResearchCenter);
+	research(res);
+	while(!researched(res)) wait(1);
+	HighLander(ResearchCenter);
+}
+
+void object::BuildBot(int cat, string prog)
+{
+	BringTo(Titanium, BotFactory);
+	move(-7);
+	factory(cat, prog);
+	BringTo(PowerCell, cat);
+	move(-7);
+}
+
+void GrabCat(int cat)
+{
+	object item;
+	if(cat == PowerCell) item = FindPower();
+	else item = radar(cat);
+	errgoto(item.position);
+	motor(1, 1);
+	wait(0.5);
+	grab();
+}
+
+void BringTo(int cat, int target)
+{
+	GrabCat(cat);
+	while(radar(target) == null) wait(1);
+	object item = radar(target);
+	errgoto(item.position);
+	drop();
+}
+
+object object::FindPower()
+{
+	object item;
+	float dist = 0;
+	do
+	{
+		item = radar(PowerCell, 0, 360, dist);
+		dist = distance2d(this.position, item.position) + 0.1;
+	}while(item.energyLevel < 1);
+	return item;
+}
+
+void HighLander(int cat)
+{
+	GrabCat(cat);
+	errgoto(space());
+	drop();
+}
+
+public void object::Info()
+{
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 30, 1, 7) != null) wait(1);
+	move(-7);
+	object item = radar(BlueFlag);
+	item = search(Titanium, item.position);
+	errgoto(item.position);
+	build(ExchangePost);
+	send("", 0);
+	item = radar(SpaceShip);
+	errgoto(item.position);
+	while(radar(BlackBox) == null) wait(1);
+	while(search(TrackedGrabber, item.position, 0, 20) != null) wait(1);
+	object astro = radar(Me);
+	while(distance(astro.position, item.position) > 10)
+	{
+		message("Ты где там шаришься? Живо на борт.");
+		wait(1 + rand()*2);
+	}
+	takeoff();
+}
+
+public void errgoto(point pos)
+{
+	errmode(0);
+	int err = goto(pos);
+	while(err != 0) err = goto(pos);
+	errmode(1);
+}
