@@ -1,0 +1,13 @@
+extern void object::Builder()
+{
+	post info = new post();
+	while(true)
+	{
+		while(info.item == null) wait(1);
+		errgoto(info.item.position);
+		build(info.cat);
+		errgoto(space());
+		info.item = null;
+		info.cat = nan;
+	}
+}
