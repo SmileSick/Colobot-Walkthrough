@@ -1,9 +1,9 @@
-extern void object::Mission12()
+extern void object::M1_12_Earth2()
 {
 	Build(ResearchCenter);
 	Build(BotFactory);
 }
-void object::Build(int cat)
+void Build(int cat)
 {
 	object item = radar(Titanium);
 	goto(item.position);
