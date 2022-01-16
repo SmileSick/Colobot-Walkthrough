@@ -1,4 +1,4 @@
-extern void object::M1_12_Earth2()
+extern void Earth2_0_1_12()
 {
 	Build(ResearchCenter);
 	Build(BotFactory);
