@@ -1,0 +1,71 @@
+extern void Moon1_0_1_12()
+{
+	Build(ResearchCenter);
+	Research(ResearchWinged);
+	Build(BotFactory);
+	BuildBot(WingedGrabber, "Ore");
+	object item = radar(SpaceShip);
+	errgoto(item.position);
+}
+
+void object::Build(int cat)
+{
+	GrabCat(Titanium);
+	errgoto(space(this.position, 8, 50, 8));
+	move(-1.5);
+	drop();
+	build(cat);
+}
+
+void Research(int res)
+{
+	BringTo(PowerCell, ResearchCenter);
+	object item = radar(ResearchCenter);
+	item.research(res);
+}
+
+void BuildBot(int cat, string prog)
+{
+	BringTo(Titanium, BotFactory);
+	move(-7);
+	object item = radar(BotFactory);
+	item.factory(cat, prog);
+	BringTo(PowerCell, cat);
+	move(-7);
+}
+
+void GrabCat(int cat)
+{
+	object item = radar(cat, 0, 360, 3);
+	errgoto(item.position);
+	grab();
+}
+
+void BringTo(int cat, int target, int angle = 0)
+{
+	GrabCat(cat);
+	while(radar(target) == null) wait(1);
+	object item = radar(target);
+	errgoto(item.position);
+	turn(angle);
+	drop();
+}
+
+public void object::Ore()
+{
+	object item;
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 10, 1, 7) != null) wait(1);
+	move(-7);
+	for(int i = 0; i < 4; i++)
+	{
+		BringTo(TitaniumOre, SpaceShip, i*45 - 45);
+	}
+}
+
+void errgoto(point pos)
+{
+	errmode(0);
+	while(goto(pos) != 0);
+	errmode(1);
+}
