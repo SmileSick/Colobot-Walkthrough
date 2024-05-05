@@ -1,0 +1,144 @@
+extern void object::m74()
+{
+	Build(Converter, 6);
+	Build(ResearchCenter, 5);
+	MoveObjToObj(PowerCell, ResearchCenter);
+	radar(ResearchCenter).research(ResearchThumper);
+	Build(BotFactory, 10);
+	GrabCat(PowerCell);
+	SwitchCell(Behind - 3, EnergyCell, 1);
+	BuildBot(Thumper, "ProgForThumper");
+	DetectThumper();
+	MoveObjToObj(BlackBox, SpaceShip);
+}
+
+void DetectThumper()
+{
+	object bot = radar(Thumper);
+	object target = search(AlienAnt, bot.position, 0, 1000, -1);
+	while(distance2d(bot.position, target.position) > 100) wait(1);
+}
+
+public void object::ProgForThumper()
+{
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 10, 1, 7) != null) wait(1);
+	move(-7);
+	object item = radar(AlienAnt, 0, 360, 0, 1000, -1);
+	while(distance2d(this.position, item.position) > 95)
+	{
+		float dir = direction(item.position);
+		object obstacle = radar(Any, 0, 180, 0, 5);
+		if(obstacle != null)
+		{
+			dir = direction(obstacle.position);
+			if(dir < 0) dir += 180;
+			else dir -= 180;
+		}
+		motor(1 - dir/90, 1 + dir/90);
+	}
+	motor(0, 0);
+	wait(1);
+	thump();
+	errgoto(radar(SpaceShip).position);
+}
+
+void MoveObjToObj(int cat, int target)
+{
+	GrabCat(cat);
+	object item;
+	while((item = radar(target)) == null) wait(1);
+	errgoto(item.position);
+	drop();
+}
+
+void BuildBot(int cat, string prog)
+{
+	MoveObjToObj(Titanium, BotFactory);
+	move(-3);
+	radar(BotFactory).factory(cat, prog);
+	MoveObjToObj(PowerCell, cat);
+	motor(-1, -0.5);
+	wait(2);
+	motor(0, 0);
+}
+
+void Build(int cat, float radius)
+{
+	MoveObjToPlace(Titanium, radar(SpaceShip).position, 20, radius);
+	build(cat);
+}
+
+void MoveObjToPlace(int cat, point center, float dist, float radius)
+{
+	GrabCat(cat);
+	errgoto(flatspace(center, radius, dist, 1000, radius));
+	move(-1.5);
+	drop();
+}
+
+void object::GrabCat(int cat)
+{
+	object item;
+	if(cat == Titanium) item = FindTitanium();
+	else if(cat == PowerCell) item = FindPower();
+	else item = radar(cat);
+	errgoto(item.position);
+	turn(direction(item.position));
+	motor(1, 1);
+	wait(1);
+	grab();
+}
+
+object FindTitanium()
+{
+	object item = radar(Titanium);
+	if(item == null) item = Convert();
+	else errgoto(space(item.position, 1, 1000, 1));
+	return item;
+}
+
+object Convert()
+{
+	MoveObjToObj(TitaniumOre, Converter);
+	move(-2);
+	object item;
+	while((item = radar(Titanium)) == null) wait(1);
+	return item;
+}
+
+object object::FindPower()
+{
+	object item = radar(SpaceShip);
+	errgoto(item.position);
+	float dist = 0;
+	do
+	{
+		item = radar(PowerCell, 0, 360, dist);
+		dist = distance2d(this.position, item.position) + 0.1;
+	}while(item.energyLevel < 1);
+	return item;
+}
+
+void errgoto(point pos, float alt = 10)
+{
+	errmode(0);
+	while(goto(pos) != 0)
+	{
+		turn(direction(pos));
+		motor(1, 1);
+		wait(1);
+	}
+	errmode(1);
+}
+
+void object::SwitchCell(int start, int finish, int delta)
+{
+	finish += delta;
+	for(int i = start; i != finish; i += delta)
+	{
+		int place = (i % 3) + 3;
+		if(this.load == null) grab(place);
+		else drop(place);
+	}
+}
