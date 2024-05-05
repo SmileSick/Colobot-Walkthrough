@@ -1,0 +1,62 @@
+extern void object::m75()
+{
+	if(this.category == Thumper)
+	{
+		thump();
+		message("Лети в этом направлении и найди WingedOrgaShooter");
+		turn(direction(MyRadar(WingedOrgaShooter).position));
+	}
+	else
+	{
+		message("Иди на корабль, пока я здесь со всем разберусь.");
+		object target;
+		while((target = radar(AlienAnt)) != null)
+		{
+			float dir = direction(target.position);
+			float dist = distance2d(this.position, target.position);
+			if(dist < 20)
+			{
+				turn(dir);
+				aim(atan2(target.position.z - this.position.z - 2, dist) - this.pitch);
+				jet(-1);
+				fire(0.1);
+			}
+			jet((3 - this.altitude)/3);
+			object obstacle = radar(SpaceShip, 0, 180, 0, 10);
+			if(obstacle != null)
+			{
+				dir = direction(obstacle.position);
+				if(dir < 0) dir += 180;
+				else dir -= 180;
+			}
+			motor(1 - dir/90, 1 + dir/90);
+		}
+		errgoto(space());
+		object ship = radar(SpaceShip);
+		object human = radar(Me);
+		while(distance(human.position, ship.position) > 10)
+		{
+			message("Ты где там шаришься? Живо на борт.");
+			wait(rand() + 2);
+		}
+		ship.takeoff();
+	}
+}
+
+void errgoto(point pos)
+{
+	errmode(0);
+	while(goto(pos) != 0) wait(1);
+	errmode(1);
+}
+
+object MyRadar(int cat)
+{
+	int i = 0;
+	object item;
+	do
+	{
+		item = retobject(i++);
+	}while(item == null || item.category != cat);
+	return item;
+}
