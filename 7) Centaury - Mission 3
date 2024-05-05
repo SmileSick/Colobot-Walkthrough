@@ -1,0 +1,240 @@
+extern void object::m73()
+{
+	message("Иди на корабль, пока я здесь со всем разберусь.");
+	FindPower();
+	CreateNuclear();
+	MoveObjToPlace(PowerCell, radar(SpaceShip).position, 20, 4);
+	Build(BotFactory, 8);
+	Build(RepairCenter, 6);
+	Build(RadarStation, 3);
+	BuildBot(LeggedOrgaShooter, "ShootThemAll");
+}
+
+public void object::ShootThemAll()
+{
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 10, 1, 7) != null) wait(1);
+	ipf(10000);
+	move(-7);
+	int[] targets = {AlienAnt, AlienSpider};
+	object item;
+	while((item = radar(targets)) != null)
+	{
+		float dir = direction(item.position);
+		float dist = distance2d(this.position, item.position);
+		point front, back;
+		float targetOri = this.orientation + dir;
+		front.x = this.position.x + cos(targetOri);
+		front.y = this.position.y + sin(targetOri);
+		back.x = this.position.x - cos(targetOri);
+		back.y = this.position.y - sin(targetOri);
+		float cPitch = atan2(topo(front) - topo(back), 2);
+		float angle = atan2(item.position.z - this.position.z - 2, dist) - cPitch;
+		bool canFire = false;
+		point gun = MyGunPoint();
+		if(LineOfShoot(gun, item.position) && angle < 25 && angle > -25) canFire = true;
+		else if(dist < 45) dir -= 135;
+		if(dist < 43 && canFire) Shoot(item.position, cPitch);
+		object obstacle = FindObstacle();
+		if(obstacle != null)
+		{
+			dir = direction(obstacle.position);
+			if(dir > 0) dir -= 90;
+			else dir += 90;
+		}
+		front.x = this.position.x + cos(this.orientation);
+		front.y = this.position.y + sin(this.orientation);
+		if(topo(front) - topo(this.position) > 1.5) dir = -45;
+		motor(1 - dir/90, 1 + dir/90);
+		if(this.shieldLevel < 1)
+		{
+			Shoot(item.position, cPitch);
+			Repair();
+		}
+	}
+	motor(0, 0);
+	Finish();
+}
+
+void object::Repair()
+{
+	errgoto(radar(RepairCenter).position);
+	while(this.shieldLevel < 1) wait(1);
+	errgoto(space());
+}
+
+void object::Shoot(point target, float cPitch)
+{
+	turn(direction(target));
+	float angle = atan2(target.z - this.position.z - 2, distance2d(this.position, target)) - cPitch;
+	aim(angle);
+	motor(1, 1);
+	fire(1);
+}
+
+point object::MyGunPoint()
+{
+	point myPos = this.position;
+	myPos.z += 2*cos(this.pitch)*cos(this.roll);
+	myPos.x -= sin(this.pitch)*cos(this.orientation);
+	myPos.y -= sin(this.pitch)*sin(this.orientation);
+	return myPos;
+}
+
+void Finish()
+{
+	object ship = radar(SpaceShip);
+	object human = radar(Me);
+	while(distance(human.position, ship.position) > 10)
+	{
+		message("Ты где там шаришься? Живо на борт.");
+		wait(rand() + 2);
+	}
+	ship.takeoff();
+}
+
+bool object::LineOfShoot(point gun, point target)
+{
+	int iter = distance2d(gun, target);
+	for(int i = 1; i < iter; i++)
+	{
+		point pos;
+		pos.x = gun.x + (target.x - gun.x)/iter*i;
+		pos.y = gun.y + (target.y - gun.y)/iter*i;
+		pos.z = gun.z + (target.z - gun.z)/iter*i;
+		if(topo(pos) > pos.z + 0.5) return false;
+	}
+	return true;
+}
+
+void MoveObjToObj(int cat, int target)
+{
+	GrabCat(cat);
+	object item;
+	while((item = radar(target)) == null) wait(1);
+	errgoto(item.position);
+	if(target == LeggedOrgaShooter) SwitchCell(Behind - 3, EnergyCell, 1);
+	else drop();
+}
+
+void BuildBot(int cat, string prog)
+{
+	MoveObjToObj(Titanium, BotFactory);
+	errgoto(space());
+	radar(BotFactory).factory(cat, prog);
+	MoveObjToObj(PowerCell, cat);
+	errgoto(space());
+}
+
+void Build(int cat, float radius)
+{
+	MoveObjToPlace(Titanium, radar(SpaceShip).position, 20, radius);
+	build(cat);
+}
+
+void CreateNuclear()
+{
+	object item = MyRadar(NuclearPlant);
+	errgoto(item.position);
+	errgoto(radar(UraniumOre).position, 1);
+	grab();
+	errgoto(item.position, 1);
+	drop();
+	move(-3);
+	while(item.energyCell == null || item.energyCell.category != NuclearCell) wait(1);
+	move(3);
+	SwitchCell(EnergyCell, Behind - 3, -1);
+}
+
+object FindObstacle()
+{
+	return MyRadar(Any);
+}
+
+object object::MyRadar(int cat)
+{
+	int i = 0;
+	object needItem = null;
+	float minDist = 1000;
+	object item;
+	while((item = retobject(i++)) != null)
+	{
+		if(item.position.x == nan || item == this) continue;
+		float dist = distance2d(this.position, item.position);
+		if(cat == Any && dist <= 10 || item.category == cat && dist < minDist)
+		{
+			needItem = item;
+			minDist = dist;
+		}
+	}
+	return needItem;
+}
+
+void MoveObjToPlace(int cat, point center, float dist, float radius)
+{
+	GrabCat(cat);
+	errgoto(flatspace(center, radius, dist, 1000, radius));
+	move(-1.5);
+	drop();
+}
+
+void object::GrabCat(int cat)
+{
+	if(this.load != null) return;
+	object item = MyRadar(cat);
+	errgoto(item.position);
+	turn(direction(item.position));
+	motor(1, 1);
+	while(distance2d(this.position, item.position) > 2) wait(0.1);
+	grab();
+}
+
+void FindPower()
+{
+	object item = radar(Wreck);
+	object[] batteries = MySearchAll(PowerCell, item.position, 50);
+	object battery = batteries[0];
+	float power = battery.energyLevel;
+	for(int i = 1; i < sizeof(batteries); i++)
+	{
+		if(batteries[i].energyLevel > power)
+		{
+			battery = batteries[i];
+			power = battery.energyLevel;
+		}
+	}
+	errgoto(flatspace(item.position, 4));
+	errgoto(battery.position);
+	SwitchCell(EnergyCell, EnergyCell - 3, -1);
+}
+
+object[] MySearchAll(int cat, point center, float radius)
+{
+	int i = 0;
+	object item;
+	object[] need = null;
+	while((item = retobject(i++)) != null)
+	{
+		if(item.position.x == nan) continue;
+		if(item.category == cat && distance2d(center, item.position) <= radius) need[sizeof(need)] = item;
+	}
+	return need;
+}
+
+public void errgoto(point pos, float alt = 10)
+{
+	errmode(0);
+	while(goto(pos, alt) != 0) wait(1);
+	errmode(1);
+}
+
+void object::SwitchCell(int start, int finish, int delta)
+{
+	finish += delta;
+	for(int i = start; i != finish; i += delta)
+	{
+		int place = (i % 3) + 3;
+		if(this.load == null) grab(place);
+		else drop(place);
+	}
+}
