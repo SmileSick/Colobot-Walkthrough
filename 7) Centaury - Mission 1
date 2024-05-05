@@ -1,0 +1,221 @@
+extern void object::m71()
+{
+	if(this.category == WingedGrabber)
+	{
+		CreateProgs();
+		FindHidden();
+	}
+	else if(this.category == Recycler) CreateTitanium();
+	else Legged();
+}
+
+void CreateProgs()
+{
+	file sys = new file();
+	//shooter
+	sys.open("shooter.txt", "w");
+	sys.writeln("extern void object::ShootThemAll()");
+	sys.writeln("{");
+	sys.writeln("while(this.energyCell == null) wait(1);");
+	sys.writeln("while(radar(Any, 180, 10, 1, 7) != null) wait(1);");
+	sys.writeln("ipf(10000);");
+	sys.writeln("move(-7);");
+	sys.writeln("point center = radar(OrgaMatter).position;");
+	sys.writeln("object item;");
+	sys.writeln("while((item = search(AlienAnt, center, 0, 100)) != null)");
+	sys.writeln("{");
+	sys.writeln("if(radar(AlienAnt, 0, 360, 0, 100) != null) item = radar(AlienAnt);");
+	sys.writeln("float dir = direction(item.position);");
+	sys.writeln("float dist = distance2d(this.position, item.position);");
+	sys.writeln("point front, back;");
+	sys.writeln("float targetOri = this.orientation + dir;");
+	sys.writeln("front.x = this.position.x + cos(targetOri);");
+	sys.writeln("front.y = this.position.y + sin(targetOri);");
+	sys.writeln("back.x = this.position.x - cos(targetOri);");
+	sys.writeln("back.y = this.position.y - sin(targetOri);");
+	sys.writeln("float cPitch = atan2(topo(front) - topo(back), 2);");
+	sys.writeln("float angle = atan2(item.position.z - this.position.z - 2, dist) - cPitch;");
+	sys.writeln("bool canFire = false;");
+	sys.writeln("if(LineToTarget(item.position) && angle < 21 && angle > -21) canFire = true;");
+	sys.writeln("else if(dist < 41) dir += 135;");
+	sys.writeln("if(dist < 41 && canFire)");
+	sys.writeln("{");
+	sys.writeln("turn(direction(item.position));");
+	sys.writeln("atan2(item.position.z - this.position.z - 2, dist) - cPitch;");
+	sys.writeln("aim(angle, -direction(item.position));");
+	sys.writeln("fire(0.1);");
+	sys.writeln("}");
+	sys.writeln("motor(1 - dir/90, 1 + dir/90);");
+	sys.writeln("}");
+	sys.writeln("motor(0, 0);");
+	sys.writeln("goto(space());");
+	sys.writeln("}");
+	sys.writeln("bool object::LineToTarget(point target)");
+	sys.writeln("{");
+	sys.writeln("point myPos = this.position;");
+	sys.writeln("int iter = distance2d(myPos, target);");
+	sys.writeln("for(int i = 1; i < iter; i++)");
+	sys.writeln("{");
+	sys.writeln("point pos;");
+	sys.writeln("pos.x = myPos.x + (target.x - myPos.x)/i;");
+	sys.writeln("pos.y = myPos.y + (target.y - myPos.y)/i;");
+	sys.writeln("pos.z = myPos.z + (target.z - myPos.z)/i;");
+	sys.writeln("if(topo(pos) > pos.z + 0.5) return false;");
+	sys.writeln("}");
+	sys.writeln("return true;");
+	sys.writeln("}");
+	sys.close();
+	//final
+	sys.open("final.txt", "w");
+	sys.writeln("extern void object::Final()");
+	sys.writeln("{");
+	sys.writeln("while(this.energyCell == null) wait(1);");
+	sys.writeln("while(radar(Any, 180, 10, 1, 7) != null) wait(1);");
+	sys.writeln("object item = radar(SpaceShip);");
+	sys.writeln("goto(item.position);");
+	sys.writeln("item.takeoff();");
+	sys.writeln("}");
+	sys.close();
+}
+
+void object::FindHidden()
+{
+	Travel(radar(NuclearCell));
+	camerafocus(this);
+	grab();
+	object item = radar(LeggedGrabber);
+	point pos;
+	pos.x = item.position.x - 5*cos(item.orientation);
+	pos.y = item.position.y - 5*sin(item.orientation);
+	errgoto(pos);
+	turn(direction(item.position));
+	move(3);
+	drop(Behind);
+	grab();
+	turn(-90);
+	drop();
+	turn(direction(item.position));
+	grab(Behind);
+	drop();
+}
+
+void object::Travel(object item)
+{
+	jet(1);
+	while(distance2d(this.position, item.position) > 5)
+	{
+		point sensor;
+		sensor.x = this.position.x + 15*cos(this.orientation - 25);
+		sensor.y = this.position.y + 15*sin(this.orientation - 25);
+		float dir;
+		if(topo(sensor) - 1 > this.position.z) dir = 25;
+		else dir = direction(item.position);
+		motor(1 - dir/90, 1 + dir/90);
+	}
+	jet(0);
+	motor(0, 0);
+	wait(1);
+	errgoto(item.position);
+}
+
+void CreateTitanium()
+{
+	errgoto(radar(Wreck).position);
+	recycle();
+}
+
+void object::Legged()
+{
+	while(this.energyCell == null || this.energyCell.category != NuclearCell) wait(1);
+	while(radar(Titanium) == null) wait(1);
+	BuildBase();
+	BuildBot(LeggedShooter, "/files/shooter.txt");
+	point center = radar(OrgaMatter).position;
+	while(search(AlienAnt, center, 0, 100) != null || radar(OrgaMatter) == null) wait(1);
+	MoveObjToObj(OrgaMatter, AutoLab);
+	radar(AutoLab).research(ResearchOrgaShooter);
+	BuildBot(LeggedOrgaShooter, "/files/final.txt");
+}
+
+void BuildBot(int cat, string prog)
+{
+	MoveObjToObj(Titanium, BotFactory);
+	errgoto(space());
+	radar(BotFactory).factory(cat, prog);
+	MoveObjToObj(PowerCell, cat);
+	errgoto(space());
+}
+
+void BuildBase()
+{
+	Build(Converter, 6);
+	Build(BotFactory, 8);
+	Build(AutoLab, 6);
+}
+
+void Build(int cat, float radius)
+{
+	MoveObjToPlace(Titanium, radar(SpaceShip).position, 20, radius);
+	build(cat);
+}
+
+void MoveObjToPlace(int cat, point center, float dist, float radius)
+{
+	GrabCat(cat);
+	errgoto(flatspace(center, radius, dist, 1000, radius));
+	move(-1.5);
+	drop();
+}
+
+void GrabCat(int cat)
+{
+	object item;
+	if(cat == Titanium) item = FindTitanium();
+	else item = radar(cat);
+	errgoto(item.position);
+	grab();
+}
+
+object FindTitanium()
+{
+	object item = radar(Titanium);
+	if(item != null) return item;
+	return Convert();
+}
+
+object Convert()
+{
+	MoveObjToObj(TitaniumOre, Converter);
+	errgoto(space());
+	object item;
+	while((item = radar(Titanium)) == null) wait(1);
+	return item;
+}
+
+void MoveObjToObj(int cat, int target)
+{
+	GrabCat(cat);
+	object item;
+	while((item = radar(target)) == null) wait(1);
+	errgoto(item.position);
+	if(target == LeggedShooter) SwitchCell();
+	else drop();
+}
+
+void SwitchCell()
+{
+	turn(direction(radar(LeggedShooter).position));
+	for(int i = 1; i < 6; i++)
+	{
+		int place = (i % 3) + 3;
+		if(i % 2 == 0) grab(place);
+		else drop(place);
+	}
+}
+
+void errgoto(point pos)
+{
+	errmode(0);
+	while(goto(pos) != 0) wait(1);
+	errmode(1);
+}
