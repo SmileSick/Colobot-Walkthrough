@@ -1,0 +1,102 @@
+public class cBuilder
+{
+	static private int cat;
+	static private object material;
+	void cBuilder()
+	{
+		DeleteInfo();
+	}
+	public void DeleteInfo()
+	{
+		cat = nan;
+		material = null;
+	}
+	public void SetParameters(int cat, object material)
+	{
+		this.cat = cat;
+		this.material = material;
+	}
+	public int GetCat() {return cat;}
+	public object GetMaterial() {return material;}
+}
+
+extern void object::M23Plus()
+{
+	GrabCat(WheeledGrabber);
+	CreateBuilding(PowerStation, 6);
+	Recharge();
+	BringTo(BlackBox, SpaceShip);
+	takeoff();
+}
+
+void object::SwitchCell(int start, int finish, int delta = 1)
+{
+	finish += delta;
+	for(int i = start; i != finish; i += delta)
+	{
+		int place = (i % 3) + 3;
+		if(this.load == null) grab(place);
+		else drop(place);
+	}
+}
+
+void object::Recharge()
+{
+	object item = radar(PowerStation);
+	ErrGoto(item.position);
+	while(this.energyCell.energyLevel < 1) wait(1);
+}
+
+void CreateBuilding(int cat, int rad)
+{
+	cBuilder info = new cBuilder();
+	GrabCat(Titanium);
+	point place = flatspace(radar(SpaceShip).position, rad, 25, 1000, rad);
+	ErrGoto(place);
+	move(-1.5);
+	drop();
+	object material = radar(Titanium);
+	info.SetParameters(cat, material);
+	place = flatspace(material.position, 2, 0, 1000, rad/2);
+	ErrGoto(place);
+	while(radar(cat) == null) wait(1);
+}
+
+void object::GrabCat(int cat)
+{
+	object item = radar(cat);
+	ErrGoto(item.position);
+	if(cat == WheeledGrabber)
+	{
+		motor(1, 1);
+		wait(1);
+	}
+	if(this.load != null)
+	{
+		turn(90);
+		SwitchCell(Behind - 3, EnergyCell);
+		turn(-90);
+	}
+	grab();
+}
+
+void BringTo(int cat, int target)
+{
+	GrabCat(cat);
+	object item;
+	while((item = radar(target)) == null) wait(1);
+	ErrGoto(item.position);
+	drop();
+}
+
+public void object::ErrGoto(point pos)
+{
+	errmode(0);
+	if(this.load != null && this.load.category == Titanium)
+	{
+		turn(direction(pos));
+		move(5);
+	}
+	while(goto(pos) != 0) wait(1);
+	errmode(1);
+}
