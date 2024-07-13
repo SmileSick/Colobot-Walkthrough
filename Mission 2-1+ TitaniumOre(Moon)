@@ -1,0 +1,114 @@
+public class cBuilder
+{
+	static private int cat;
+	static private object material;
+	void cBuilder()
+	{
+		DeleteInfo();
+	}
+	public void DeleteInfo()
+	{
+		cat = nan;
+		material = null;
+	}
+	public void SetParameters(int cat, object material)
+	{
+		this.cat = cat;
+		this.material = material;
+	}
+	public int GetCat() {return cat;}
+	public object GetMaterial() {return material;}
+}
+
+extern void M21Plus()
+{
+	Research(ResearchWinged);
+	CreateBuilding(BotFactory, 8);
+	BuildBot(WingedGrabber, "Ore");
+	ErrGoto(radar(SpaceShip).position);
+}
+
+void CreateBuilding(int cat, int rad)
+{
+	cBuilder info = new cBuilder();
+	GrabCat(Titanium);
+	point place = flatspace(radar(SpaceShip).position, rad, 25, 1000, rad);
+	ErrGoto(place);
+	move(-1.5);
+	drop();
+	object material = radar(Titanium);
+	info.SetParameters(cat, material);
+	place = flatspace(material.position, 2, 0, 1000, rad);
+	ErrGoto(place);
+	while(radar(cat) == null) wait(1);
+}
+
+void Research(int res)
+{
+	if(researched(res)) return;
+	if(radar(ResearchCenter) == null) CreateBuilding(ResearchCenter, 5);
+	BringTo(PowerCell, ResearchCenter);
+	research(res);
+	while(!researched(res)) wait(1);
+}
+
+void BuildBot(int cat, string prog)
+{
+	BringTo(Titanium, BotFactory);
+	move(-3);
+	factory(cat, prog);
+	BringTo(PowerCell, cat);
+}
+
+void GrabCat(int cat)
+{
+	int dist = 0;
+	if(cat == TitaniumOre) dist = 20;
+	object item = radar(cat, 0, 360, dist);
+	ErrGoto(item.position);
+	grab();
+}
+
+void BringTo(int cat, int target)
+{
+	if(radar(SpaceShip, 0, 360, 0, 10) != null) GetOut();
+	GrabCat(cat);
+	object item;
+	while((item = radar(target)) == null) wait(1);
+	point pos = item.position;
+	ErrGoto(pos);
+	ErrDrop();
+}
+
+void GetOut()
+{
+	point ship = radar(SpaceShip).position;
+	turn(direction(ship));
+	jet(1);
+	wait(0.5);
+	move(-5);
+}
+
+void ErrDrop()
+{
+	errmode(0);
+	while(drop() != 0) turn(10);
+	errmode(1);
+}
+
+public void object::Ore()
+{
+	while(this.energyCell == null) wait(1);
+	while(radar(Any, 180, 10, 1, 7) != null) wait(1);
+	for(int i = 0; i < 4; i++)
+	{
+		BringTo(TitaniumOre, SpaceShip);
+	}
+}
+
+public void ErrGoto(point pos)
+{
+	errmode(0);
+	while(goto(pos) != 0) wait(1);
+	errmode(1);
+}
