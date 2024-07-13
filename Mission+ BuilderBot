@@ -1,0 +1,13 @@
+extern void Builder()
+{
+	cBuilder info = new cBuilder();
+	while(true)
+	{
+		object item;
+		while((item = info.GetMaterial()) == null) wait(1);
+		ErrGoto(item.position);
+		build(info.GetCat());
+		ErrGoto(space());
+		info.DeleteInfo();
+	}
+}
