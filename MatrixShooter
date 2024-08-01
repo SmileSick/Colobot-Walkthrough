@@ -1,3 +1,5 @@
+// Video of the program is available at the link: https://youtu.be/_gwAHb_3BYY
+// The climb to the highest point has been removed from the code, as it does not relate to shooting.
 extern void ShootThemAll()
 {
 	ipf(10000);
