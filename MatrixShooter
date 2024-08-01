@@ -1,0 +1,139 @@
+extern void ShootThemAll()
+{
+	ipf(10000);
+  object item;
+	while((item = radar(TNT)) != null)
+	{
+		point target = item.position;
+		point gun = MyGunPoint();
+		float dir = direction(target);
+		float dist = distance(gun, target);
+		bool canShoot = false;
+		if(dist < 7) canShoot = true;
+		else if(dist < 40)
+		{
+			if(LineOfSight(gun, target) && Aim(target)) canShoot = true;
+			else dir += 45;
+		}
+		if(canShoot)
+		{
+			Aim(target, true);
+			fire(0.1);
+			wait(dist/40);
+		}
+		motor(1 - dir/90, 1 + dir/90);
+	}
+	motor(0, 0);
+}
+
+bool object::Aim(point target, bool insist = false)
+{
+	float[] tnt = {target.x, target.y, target.z, 1};
+	point me = this.position;
+	tnt = Move3d(tnt, -me.x, -me.y, -me.z);
+	tnt = Multy(tnt, RotateZ(-this.orientation));
+	tnt = Multy(tnt, RotateY(this.pitch));
+	tnt = Multy(tnt, RotateX(this.roll));
+	tnt = Move3d(tnt, 0, 0, -1.325);
+	point param;
+	param.x = atan2(tnt[1], tnt[0]);
+	tnt = Multy(tnt, RotateZ(-param.x));
+	param.y = atan2(tnt[2], tnt[0]);
+	if(!insist && (param.y > 20 || param.y < -10)) return false;
+	motor(0, 0);
+	if(abs(param.x) > 40) turn(param.x - 40*Sign(param.x));
+	aim(param.y, -param.x);
+	return true;
+}
+
+int Sign(float num)
+{
+	if(num > 0) return 1;
+	else if(num < 0) return -1;
+	return 0;
+}
+
+float[][] RotateX(float angle)
+{
+	float[][] action = {
+		{1, 0, 0, 0},
+		{0, cos(angle), sin(angle), 0},
+		{0, -sin(angle), cos(angle), 0},
+		{0, 0, 0, 1}
+	};
+	return action;
+}
+
+float[][] RotateY(float angle)
+{
+	float[][] action = {
+		{cos(angle), 0, -sin(angle), 0},
+		{0, 1, 0, 0},
+		{sin(angle), 0, cos(angle), 0},
+		{0, 0, 0, 1}
+	};
+	return action;
+}
+
+float[][] RotateZ(float angle)
+{
+	float[][] action = {
+		{cos(angle), sin(angle), 0, 0},
+		{-sin(angle), cos(angle), 0, 0},
+		{0, 0, 1, 0},
+		{0, 0, 0, 1}
+	};
+	return action;
+}
+
+float[] Multy(float[] figure, float[][] action)
+{
+	int m = sizeof(action);
+	float[] result;
+	for(int j = 0; j < m; j++)
+	{
+		float sum = 0;
+		for(int k = 0; k < m; k++)
+		{
+			sum += figure[k]*action[k][j];
+		}
+		result[j] = sum;
+	}
+	return result;
+}
+
+float[] Move3d(float[] pos, float x, float y, float z)
+{
+	pos[0] = pos[0] + x;
+	pos[1] = pos[1] + y;
+	pos[2] = pos[2] + z;
+	return pos;
+}
+
+point object::MyGunPoint()
+{
+	point me = this.position;
+	float[] gun = {0, 0, 1.325, 1};
+	gun = Multy(gun, RotateX(-this.roll));
+	gun = Multy(gun, RotateY(-this.pitch));
+	gun = Multy(gun, RotateZ(this.orientation));
+	gun = Move3d(gun, me.x, me.y, me.z);
+	me.x = gun[0];
+	me.y = gun[1];
+	me.z = gun[2];
+	return me;
+}
+
+bool LineOfSight(point gun, point target)
+{
+	int iter = distance2d(gun, target);
+	for(int i = 1; i < iter; i++)
+	{
+		point pos;
+		pos.x = gun.x + (target.x - gun.x)/iter*i;
+		pos.y = gun.y + (target.y - gun.y)/iter*i;
+		pos.z = gun.z + (target.z - gun.z)/iter*i;
+		if(topo(pos) > pos.z) return false;
+	}
+	return true;
+}
